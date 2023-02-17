@@ -121,9 +121,10 @@ for word in tqdm(word2count, desc='Creating dataset'):
 			word = word[:pos] + random.choice(string.ascii_lowercase) + word[pos:]
 			word_data['corruption'].append((word, best_ss.pos(), 0))
 		elif operation == 2: # Deletion
-			pos = random.randint(0, len(word))
-			word = word[:pos] + word[pos + 1:]
-			word_data['corruption'].append((word, best_ss.pos(), 0))
+			if len(word) >= 2:
+				pos = random.randint(0, len(word))
+				word = word[:pos] + word[pos + 1:]
+				word_data['corruption'].append((word, best_ss.pos(), 0))
 		else: # Swap
 			if len(word) >= 2:
 				pos = random.randint(0, len(word) - 2)
