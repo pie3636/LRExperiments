@@ -15,7 +15,8 @@ from wordfreq import zipf_frequency
 random.seed(42)
 
 tokenizer = CamembertTokenizer.from_pretrained('camembert-base')
-vocab = tokenizer.get_vocab().keys()
+sp = tokenizer.sp_model
+vocab = {sp.id_to_piece(id) for id in range(sp.get_piece_size())}
 word2count = {}
 
 out_file = open('WNLaMPro_fr.txt', 'w')
@@ -122,13 +123,13 @@ for word in tqdm(word2count, desc='Creating dataset'):
 			word_data['corruption'].append((word, best_ss.pos(), 0))
 		elif operation == 2: # Deletion
 			if len(word) >= 2:
-				pos = random.randint(0, len(word))
+				pos = random.randint(0, len(word) - 1)
 				word = word[:pos] + word[pos + 1:]
 				word_data['corruption'].append((word, best_ss.pos(), 0))
 		else: # Swap
 			if len(word) >= 2:
 				pos = random.randint(0, len(word) - 2)
-				word = word[:pos] + word[pos + 1] + word[pos]
+				word = word[:pos] + word[pos + 1] + word[pos] + word[pos + 2:]
 				word_data['corruption'].append((word, best_ss.pos(), 0))
 
 	save_data(word_save, best_ss.pos(), word_data, word2count[word_save], out_file)
