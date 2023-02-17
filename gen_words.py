@@ -87,7 +87,7 @@ for word in tqdm(word2count, desc='Creating dataset'):
 			for hyp in path[5:][-4:-1]:
 				for lemma in hyp.lemmas(lang='fra'):
 					name = lemma.name()
-					if '_' not in name and name in word2count and (lemma, freq) not in hypernyms and name in vocab:
+					if '_' not in name and name in word2count and (lemma, word2count[name]) not in hypernyms and name in vocab:
 						hypernyms.add((lemma, word2count[name]))
 				# Take only hypernyms of depth >= 6 and path lengths <= 2
 				if hyp not in path[5:][-4:-3]:
@@ -97,7 +97,7 @@ for word in tqdm(word2count, desc='Creating dataset'):
 						for hyponym in hyp.closure(lambda x: x.hyponyms(), depth=4):
 							for lemma in hyponym.lemmas(lang='fra'):
 								name = lemma.name()
-								if '_' not in name and name in word2count and (lemma, freq) not in hypernyms and name in vocab:
+								if '_' not in name and name in word2count and (lemma, word2count[name]) not in cohyponyms and name in vocab:
 									cohyponyms.add((lemma, word2count[name]))
 
 	# Keep from 3 to 30 hypernyms, sorted by frequency
