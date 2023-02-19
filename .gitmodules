@@ -1,0 +1,6 @@
+[submodule "am-for-bert"]
+	path = am-for-bert
+	url = git@github.com:pie3636/am-for-bert.git
+[submodule "one-token-approximation"]
+	path = one-token-approximation
+	url = git@github.com:pie3636/one-token-approximation.git

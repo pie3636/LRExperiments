@@ -2,24 +2,23 @@
 # <ANNOTATED_WORD> := <WORD> (<POS>,<FREQ>,<COUNT>)
 
 import random
-import string
 import tensorflow as tf
 tf.get_logger().setLevel('ERROR')
 import warnings
 
 from nltk.corpus import wordnet as wn
 from tqdm import tqdm
-from transformers import CamembertModel, CamembertTokenizer
+from transformers import AutoTokenizer
 from wordfreq import zipf_frequency
 
 random.seed(42)
 
-tokenizer = CamembertTokenizer.from_pretrained('camembert-base')
-sp = tokenizer.sp_model
-vocab = {sp.id_to_piece(id) for id in range(sp.get_piece_size())}
+tokenizer = AutoTokenizer.from_pretrained('allegro/herbert-large-cased')
+vocab = tokenizer.get_vocab().keys()
 word2count = {}
+str_alphabet = 'abcdefghijklmnoprstuwyząćęłńóśżź'
 
-out_file = open('WNLaMPro_fr.txt', 'w')
+out_file = open('WNLaMPro_pl.txt', 'w')
 id_counter = 0
 
 def save_data(word, word_pos, word_data, word_count, out_file):
@@ -37,13 +36,13 @@ def save_data(word, word_pos, word_data, word_count, out_file):
 			out_file.write(out_str + '\n')
 
 # Count frequencies
-for line in tqdm(open('wikipedia_words.txt'), desc='Counting frequencies'):
-	word, count = eval(line.strip())
-	word2count[word] = count
+for line in tqdm(open('words_plwiki-2022-08-29.txt'), desc='Counting frequencies'):
+	word, count = line.split(' ')
+	word2count[word] = int(count)
 
 for word in tqdm(word2count, desc='Creating dataset'):
 	word_save = word
-	synsets = wn.synsets(word, lang='fra')
+	synsets = wn.synsets(word, lang='pol')
 	word_data = {'antonym': [], 'hypernym': [], 'cohyponym': [], 'corruption': []}
 
 	# Sort synsets per frequency
@@ -52,7 +51,7 @@ for word in tqdm(word2count, desc='Creating dataset'):
 		if s.pos() not in ['n', 'a']:
 			continue
 		freq = 0
-		for name in s.lemma_names(lang='fra'):
+		for name in s.lemma_names(lang='pol'):
 			if '_' in name or name not in word2count:
 				continue
 			freq += word2count[name]
@@ -70,7 +69,7 @@ for word in tqdm(word2count, desc='Creating dataset'):
 		antlist = synlemma.antonyms()
 		if antlist:
 			for antonym in antlist:
-				for lemma in antonym.synset().lemmas(lang='fra'):
+				for lemma in antonym.synset().lemmas(lang='pol'):
 					name = lemma.name()
 					# Add only once per lemma name, and keep intersection between BERT vocab and corpus
 					# Keep single-word lemma names only
@@ -85,7 +84,7 @@ for word in tqdm(word2count, desc='Creating dataset'):
 		for path in s.hypernym_paths():
 			# Take only hypernyms of depth >= 6 and path lengths <= 3
 			for hyp in path[5:][-4:-1]:
-				for lemma in hyp.lemmas(lang='fra'):
+				for lemma in hyp.lemmas(lang='pol'):
 					name = lemma.name()
 					if '_' not in name and name in word2count and (lemma, word2count[name]) not in hypernyms and name in vocab:
 						hypernyms.add((lemma, word2count[name]))
@@ -95,7 +94,7 @@ for word in tqdm(word2count, desc='Creating dataset'):
 						warnings.filterwarnings("ignore", category=UserWarning)
 						# And get hyponyms of depth <= 4
 						for hyponym in hyp.closure(lambda x: x.hyponyms(), depth=4):
-							for lemma in hyponym.lemmas(lang='fra'):
+							for lemma in hyponym.lemmas(lang='pol'):
 								name = lemma.name()
 								if '_' not in name and name in word2count and (lemma, word2count[name]) not in cohyponyms and name in vocab:
 									cohyponyms.add((lemma, word2count[name]))
@@ -119,7 +118,7 @@ for word in tqdm(word2count, desc='Creating dataset'):
 		operation = random.randint(1, 3)
 		if operation == 1: # Insertion
 			pos = random.randint(0, len(word) + 1)
-			word = word[:pos] + random.choice(string.ascii_lowercase) + word[pos:]
+			word = word[:pos] + random.choice(str_alphabet) + word[pos:]
 			word_data['corruption'].append((word, best_ss.pos(), 0))
 		elif operation == 2: # Deletion
 			if len(word) >= 2:
