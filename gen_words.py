@@ -26,24 +26,25 @@ def save_data(word, word_pos, word_data, word_count, out_file):
 	for relation, targets in word_data.items():
 		if targets:
 			set_type = 'dev' if random.randint(1, 10) == 1 else 'test'
-			freq = zipf_frequency(word, 'fr')
+			freq = zipf_frequency(word, 'pl')
 			out_str = f'{id_counter}\t{set_type}\t{word} ({word_pos},{freq},{word_count})\t{relation}\t'
 			for name, pos, count in targets:
-				freq = zipf_frequency(name, 'fr')
+				freq = zipf_frequency(name, 'pl')
 				out_str += f'{name} ({pos},{freq},{count})\t'
 			id_counter += 1
 			out_str = out_str[:-1]
 			out_file.write(out_str + '\n')
 
 # Count frequencies
-for line in tqdm(open('words_plwiki-2022-08-29.txt'), desc='Counting frequencies'):
+for line in tqdm(open('wikipedia_words_pl.txt'), desc='Counting frequencies'):
 	word, count = line.split(' ')
 	word2count[word] = int(count)
 
 for word in tqdm(word2count, desc='Creating dataset'):
 	word_save = word
 	synsets = wn.synsets(word, lang='pol')
-	word_data = {'antonym': [], 'hypernym': [], 'cohyponym': [], 'corruption': []}
+	word_data = {'antonym': [], 'hypernym': [], 'cohyponym': []}
+	corruptions = []
 
 	# Sort synsets per frequency
 	sorted_ss = []
@@ -119,18 +120,25 @@ for word in tqdm(word2count, desc='Creating dataset'):
 		if operation == 1: # Insertion
 			pos = random.randint(0, len(word) + 1)
 			word = word[:pos] + random.choice(str_alphabet) + word[pos:]
-			word_data['corruption'].append((word, best_ss.pos(), 0))
+			corruptions.append((word_save, word, best_ss.pos()))
 		elif operation == 2: # Deletion
 			if len(word) >= 2:
 				pos = random.randint(0, len(word) - 1)
 				word = word[:pos] + word[pos + 1:]
-				word_data['corruption'].append((word, best_ss.pos(), 0))
+				corruptions.append((word_save, word, best_ss.pos()))
 		else: # Swap
 			if len(word) >= 2:
 				pos = random.randint(0, len(word) - 2)
 				word = word[:pos] + word[pos + 1] + word[pos] + word[pos + 2:]
-				word_data['corruption'].append((word, best_ss.pos(), 0))
+				corruptions.append((word_save, word, best_ss.pos()))
 
 	save_data(word_save, best_ss.pos(), word_data, word2count[word_save], out_file)
+	
+	for word, corrupted, pos in corruptions:
+		set_type = 'dev' if random.randint(1, 10) == 1 else 'test'
+		freq = zipf_frequency(word, 'pl')
+		out_str = f'{id_counter}\t{set_type}\t{corrupted} ({pos},0.0,0)\tcorruption\t{word} ({pos},{freq},{word2count[word]})\n'
+		id_counter += 1
+		out_file.write(out_str)
 
 out_file.close()
